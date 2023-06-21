@@ -1,12 +1,13 @@
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support import expected_conditions as ec
+from selenium.webdriver.support.wait import WebDriverWait
 
 # Playstation store ps5/full game/deals
 url = 'https://store.playstation.com/en-ca/category/dc464929-edee-48a5-bcd3-1e6f5250ae80/1?PS5=targetPlatforms' \
       '&FULL_GAME=storeDisplayClassification'
-image_link = '//img[@data-qa="ems-sdk-grid#productTile0#game-art#image#image"]'
+site = {"site": "playstation"}
+image_link_xpath = '//img[@data-qa="ems-sdk-grid#productTile0#game-art#image#image"]'
 games_ul_xpath = '//ul[@class="psw-grid-list psw-l-grid"]'
 game_image_xpath = '//div[contains(@class, "psw-game-art__container")]/span[2]/img[1]'
 game_title_xpath = '//span[contains(@data-qa, "product-name")]'
@@ -15,6 +16,8 @@ game_sale_price_xpath = '//span[contains(@data-qa, "display-price")]'
 
 
 def cleanup_games(game_titles, game_images, game_sale_prices):
+    check_count([game_titles, game_images, game_sale_prices])
+
     # Remove free and included titles
     games_to_clean = []
 
@@ -32,13 +35,11 @@ def cleanup_games(game_titles, game_images, game_sale_prices):
 
 
 def package_games(game_titles, game_images, game_prices, game_sale_prices):
+    check_count([game_titles, game_images, game_prices, game_sale_prices])
+
     collection = []
-    count = len(game_titles)
 
-    if len(game_images) != count or len(game_prices) != count or len(game_sale_prices) != count:
-        raise Exception("Playstation count mismatch")
-
-    for index in range(count):
+    for index in range(len(game_titles)):
         collection.append({
             "title": game_titles[index].text,
             "image": game_images[index].get_attribute("src").split("?", 1)[0],
@@ -46,14 +47,25 @@ def package_games(game_titles, game_images, game_prices, game_sale_prices):
             "sale_price": game_sale_prices[index].text,
         })
 
-    print(collection)
+    return collection
 
 
-def scrape_playstation(webdriver):
+def check_count(items):
+    try:
+        count = len(items[0])
+
+        for item in items[1:]:
+            if len(item) != count:
+                raise Exception("Playstation count mismatch")
+    except:
+        raise Exception("Playstation count mismatch")
+
+
+def scrape_playstation(webdriver, db):
     try:
         webdriver.get(url)
         WebDriverWait(webdriver, 5).until(
-            ec.element_to_be_clickable((By.XPATH, image_link))
+            ec.element_to_be_clickable((By.XPATH, image_link_xpath))
         )
 
         games_ul = webdriver.find_element(By.XPATH, games_ul_xpath)
@@ -63,7 +75,9 @@ def scrape_playstation(webdriver):
         game_sale_prices = games_ul.find_elements(By.XPATH, game_sale_price_xpath)
 
         cleanup_games(game_titles, game_images, game_sale_prices)
-        package_games(game_titles, game_images, game_prices, game_sale_prices)
+        games = package_games(game_titles, game_images, game_prices, game_sale_prices)
+        db.replace_one(site, {**site, "games": games}, True)
+        webdriver.close()
 
     except TimeoutException:
         print("Playstation timed out")
