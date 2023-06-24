@@ -4,15 +4,18 @@ from selenium.webdriver.support import expected_conditions as ec
 from selenium.webdriver.support.wait import WebDriverWait
 
 # Playstation store ps5/full game/deals
-url = 'https://store.playstation.com/en-ca/category/dc464929-edee-48a5-bcd3-1e6f5250ae80/1?PS5=targetPlatforms' \
-      '&FULL_GAME=storeDisplayClassification'
+url = "https://store.playstation.com/en-ca/category/dc464929-edee-48a5-bcd3-1e6f5250ae80/1?PS5=targetPlatforms" \
+      "&FULL_GAME=storeDisplayClassification"
 site = {"site": "playstation"}
-image_link_xpath = '//img[@data-qa="ems-sdk-grid#productTile0#game-art#image#image"]'
-games_ul_xpath = '//ul[@class="psw-grid-list psw-l-grid"]'
-game_image_xpath = '//div[contains(@class, "psw-game-art__container")]/span[2]/img[1]'
-game_title_xpath = '//span[contains(@data-qa, "product-name")]'
-game_price_xpath = '//s[contains(@data-qa, "price-strikethrough")]'
-game_sale_price_xpath = '//span[contains(@data-qa, "display-price")]'
+image_link_xpath = "//img[@data-qa='ems-sdk-grid#productTile0#game-art#image#image']"
+sort_icon_xpath = "//button[@data-qa='ems-sdk-grid-sort-filter-btn-mobile']"
+sort_option_xpath = "//button[@data-qa='ems-sdk-collapsible-menu--sort']"
+best_selling_xpath = "//div[@class='ems-sdk-collapsible-menu__item-list']/span[1]/label[2]"
+games_ul_xpath = "//ul[@class='psw-grid-list psw-l-grid']"
+game_image_xpath = "//div[contains(@class, 'psw-game-art__container')]/span[2]/img[1]"
+game_title_xpath = "//span[contains(@data-qa, 'product-name')]"
+game_price_xpath = "//s[contains(@data-qa, 'price-strikethrough')]"
+game_sale_price_xpath = "//span[contains(@data-qa, 'display-price')]"
 
 
 def cleanup_games(game_titles, game_images, game_sale_prices):
@@ -63,7 +66,20 @@ def check_count(items):
 
 def scrape_playstation(webdriver, db):
     try:
+        # Once the site loads click the best-selling filter option
         webdriver.get(url)
+        WebDriverWait(webdriver, 5).until(
+            ec.element_to_be_clickable((By.XPATH, sort_icon_xpath))
+        ).click()
+        WebDriverWait(webdriver, 5).until(
+            ec.element_to_be_clickable((By.XPATH, sort_option_xpath))
+        ).click()
+        WebDriverWait(webdriver, 5).until(
+            ec.element_to_be_clickable((By.XPATH, best_selling_xpath))
+        ).click()
+        WebDriverWait(webdriver, 5).until(
+            ec.element_to_be_clickable((By.XPATH, sort_icon_xpath))
+        ).click()
         WebDriverWait(webdriver, 5).until(
             ec.element_to_be_clickable((By.XPATH, image_link_xpath))
         )
@@ -77,7 +93,9 @@ def scrape_playstation(webdriver, db):
         cleanup_games(game_titles, game_images, game_sale_prices)
         games = package_games(game_titles, game_images, game_prices, game_sale_prices)
         db.replace_one(site, {**site, "games": games}, True)
+
         webdriver.close()
+        print('Playstation success')
 
     except TimeoutException:
         print("Playstation timed out")
