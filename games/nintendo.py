@@ -13,8 +13,8 @@ wishlist_button_xpath = "//button[contains(@class, 'WishlistButtonstyles__Heart'
 games_div_xpath = "//div[contains(@class, 'SearchLayout__FilterResultsGrid')]"
 game_title_xpath = "//div[contains(@class, 'tilestyles__TitleWrapper')]/h2[contains(@class, 'Headingstyles__Styled')]"
 game_image_xpath = "//div[contains(@class, 'Imagestyles__ImageWrapper')]/img"
-price_xpath = "//span[contains(@class, 'Pricestyles__MSRP')]"
-sale_price_xpath = "//span[contains(@class, 'Pricestyles__SalePrice')]"
+game_price_xpath = "//span[contains(@class, 'Pricestyles__MSRP')]"
+game_sale_price_xpath = "//span[contains(@class, 'Pricestyles__SalePrice')]"
 
 
 def cleanup_games(game_titles, game_images, game_prices, game_sale_prices):
@@ -48,8 +48,8 @@ def scrape_nintendo(webdriver, db):
         games_div = webdriver.find_element(By.XPATH, games_div_xpath)
         game_titles = games_div.find_elements(By.XPATH, game_title_xpath)
         game_images = games_div.find_elements(By.XPATH, game_image_xpath)
-        game_prices = games_div.find_elements(By.XPATH, price_xpath)
-        game_sale_prices = games_div.find_elements(By.XPATH, sale_price_xpath)
+        game_prices = games_div.find_elements(By.XPATH, game_price_xpath)
+        game_sale_prices = games_div.find_elements(By.XPATH, game_sale_price_xpath)
 
         cleanup_games(game_titles, game_images, game_prices, game_sale_prices)
         games = package_games(game_titles, game_images, game_prices, game_sale_prices)
